@@ -38,7 +38,7 @@ func TestSinkIndexWithBreak(newLog mtest.NewLogFunc, newIdx NewSeqSetterIndexFun
 			lastSeq++
 
 			if strings.Contains(v.(string), "interesting") {
-				return idx.Set(ctx, "interesting" , v)
+				return idx.Set(ctx, "interesting", v)
 			} else if strings.Contains(v.(string), "boring") {
 				return idx.Set(ctx, "boring", v)
 			}

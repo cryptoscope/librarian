@@ -15,7 +15,12 @@ import (
 	"cryptoscope.co/go/librarian"
 )
 
-func NewIndex(db *badger.DB, tipe interface{}) librarian.SeqSetterIndex {
+type Index interface {
+	librarian.SeqSetterIndex
+	Query(...librarian.QuerySpec) (luigi.Source, error)
+}
+
+func NewIndex(db *badger.DB, tipe interface{}) Index {
 	return &index{
 		db:     db,
 		tipe:   tipe,
@@ -218,6 +223,22 @@ func (idx *index) GetSeq() (margaret.Seq, error) {
 	}
 
 	return idx.curSeq, nil
+}
+
+func (idx *index) Query(specs ...librarian.QuerySpec) (luigi.Source, error) {
+	qry := &query{
+		tipe: idx.tipe,
+		db:   idx.db,
+	}
+
+	for _, spec := range specs {
+		err := spec(qry)
+		if err != nil {
+			return nil, errors.Wrap(err, "error applying QuerySpec")
+		}
+	}
+
+	return qry, nil
 }
 
 type roObv struct {

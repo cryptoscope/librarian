@@ -7,13 +7,15 @@ import (
 )
 
 var (
-	NewSetterIndexFuncs    map[string]NewSetterIndexFunc
-	NewSeqSetterIndexFuncs map[string]NewSeqSetterIndexFunc
+	NewSetterIndexFuncs       map[string]NewSetterIndexFunc
+	NewSeqSetterIndexFuncs    map[string]NewSeqSetterIndexFunc
+	NewSourceSetterIndexFuncs map[string]NewSourceSetterIndexFunc
 )
 
 func init() {
 	NewSetterIndexFuncs = map[string]NewSetterIndexFunc{}
 	NewSeqSetterIndexFuncs = map[string]NewSeqSetterIndexFunc{}
+	NewSourceSetterIndexFuncs = map[string]NewSourceSetterIndexFunc{}
 }
 
 func RegisterSetterIndex(name string, f NewSetterIndexFunc) {
@@ -22,6 +24,10 @@ func RegisterSetterIndex(name string, f NewSetterIndexFunc) {
 
 func RegisterSeqSetterIndex(name string, f NewSeqSetterIndexFunc) {
 	NewSeqSetterIndexFuncs[name] = f
+}
+
+func RegisterSourceSetterIndex(name string, f NewSourceSetterIndexFunc) {
+	NewSourceSetterIndexFuncs[name] = f
 }
 
 func RunSetterIndexTests(t *testing.T) {
@@ -33,6 +39,12 @@ func RunSetterIndexTests(t *testing.T) {
 func RunSeqSetterIndexTests(t *testing.T) {
 	for name, newIndex := range NewSeqSetterIndexFuncs {
 		t.Run(name, TestSeqSetterIndex(newIndex))
+	}
+}
+
+func RunSourceSetterIndexTests(t *testing.T) {
+	for name, newIndex := range NewSourceSetterIndexFuncs {
+		t.Run(name, TestSourceSetterIndex(newIndex))
 	}
 }
 

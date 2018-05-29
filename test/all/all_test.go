@@ -7,6 +7,7 @@ import (
 )
 
 func Test(t *testing.T) {
+	t.Run("SourceSetterIndex", ltest.RunSourceSetterIndexTests)
 	t.Run("SeqSetterIndex", ltest.RunSeqSetterIndexTests)
 	t.Run("SetterIndex", ltest.RunSetterIndexTests)
 	t.Run("SinkIndex", ltest.RunSinkIndexTests)
