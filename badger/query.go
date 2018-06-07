@@ -14,15 +14,18 @@ import (
 )
 
 type query struct {
+	index *index
+	
 	iterOpts badger.IteratorOptions
 	iter     *badger.Iterator
 	db       *badger.DB
 	txn      *badger.Txn
 
 	tipe interface{}
-
 	seekTo librarian.Addr
 	prefix librarian.Addr
+	seqStream bool
+	seqStart margaret.Seq
 
 	init, done sync.Once
 	end        bool
@@ -64,15 +67,54 @@ func (qry *query) finalize() {
 func (qry *query) Next(ctx context.Context) (interface{}, error) {
 	qry.init.Do(qry.initialize)
 
-	if qry.end || !qry.iter.ValidForPrefix([]byte(qry.prefix)) {
+	if !qry.seqStream && (qry.end || !qry.iter.ValidForPrefix([]byte(qry.prefix))) {
 		qry.done.Do(qry.finalize)
 		return nil, luigi.EOS{}
+	}
+
+	var item *badger.Item
+
+	if qry.seqStream {
+		if !qry.iter.ValidForPrefix([]byte(qry.prefix)) {
+			key := make([]byte, len(qry.prefix) + 8)
+			binary.PutUint64(key[len(key)-8:], qry.lastSeq+1)
+
+
+			obv, err := qry.index,Get(librarian.Addr(key))
+			if err != nil {
+				return nil, errors.Wrap(err, "error getting observable")
+			}
+
+			for {
+				v, err := obv.Value()
+				if err != nil {
+					return errors.Wrap(err, "error getting value of observable")
+				}
+
+				if _, ok := v.(UnsetValue); !ok {
+					break
+				}
+			}
+			
+			defer qry.iter.Next()
+			return librarian.KVPair{Key: librarian.Addr(item.Key()), Value: v}, err
+		} else {
+			item = qry.iter.Item()
+		}
 	}
 
 	t := reflect.TypeOf(qry.tipe)
 	v := reflect.New(t).Interface()
 
-	item := qry.iter.Item()
+	
+	if qry.seqStream {
+		key := item.Key()
+		seq := margaret.Seq(binary.Uint64(key[len(key)-8:]))
+		exp := qry.lastSeq + 1
+		if seq != exp {
+			return nil, errors.Errorf("unexpected sequence number %v - expected %v", seq, exp)
+		}
+	}
 
 	data, err := item.Value()
 	if err != nil {
@@ -94,7 +136,7 @@ func (qry *query) Next(ctx context.Context) (interface{}, error) {
 			v = reflect.ValueOf(v).Elem().Interface()
 		}
 	}
-	defer qry.iter.Next()
 
+	defer qry.iter.Next()
 	return librarian.KVPair{Key: librarian.Addr(item.Key()), Value: v}, err
 }

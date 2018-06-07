@@ -22,22 +22,30 @@ type SourceSetterIndex interface {
 }
 
 type Query interface {
-	SeekTo(Addr) error
+	Live(bool) error
 	Reverse(bool) error
+	SeekTo(Addr) error
 	WithPrefix(Addr) error
 }
 
 type QuerySpec func(Query) error
 
-func SeekTo(addr Addr) QuerySpec {
-	return func(qry Query) error {
-		return qry.SeekTo(addr)
-	}
-}
-
 func Reverse(rev bool) QuerySpec {
 	return func(qry Query) error {
 		return qry.Reverse(rev)
+	}
+}
+
+func Live(live bool) QuerySpec {
+	return func(qry Query) error {
+		return qry.Live(live)
+	}
+}
+
+
+func SeekTo(addr Addr) QuerySpec {
+	return func(qry Query) error {
+		return qry.SeekTo(addr)
 	}
 }
 
